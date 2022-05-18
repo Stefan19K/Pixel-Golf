@@ -25,6 +25,7 @@ BALL_POSITION = [200, 600]
 SLOW_TIME = 100
 HOLE_RADIUS = BALL_RADIUS + 5
 HOLE_POSITION = [200, 50]
+LEVELS = 2
 
 def total_distance(x, y, ball_position):
     return math.sqrt(math.pow(x - ball_position[0], 2) + math.pow(y - ball_position[1], 2))
@@ -67,9 +68,8 @@ class GameObject:
 
     def collidesWith(self, other):
         # TODO 5 - Return true if self collides with other, false otherwise
-        return abs(self.position[0] - other.position[0]) < abs(self.dimensions[0] + other.dimensions[0]) and \
-               abs(self.position[1] - other.position[1]) < abs(self.dimensions[1] + other.dimensions[1])
-        pass
+        return self.position[0] >= HOLE_POSITION[0] and self.position[0] <= HOLE_POSITION[0] + HOLE_RADIUS * 2 - BALL_RADIUS \
+            and self.position[1] >= HOLE_POSITION[1] and self.position[1] <= HOLE_POSITION[1] + HOLE_RADIUS * 2 - BALL_RADIUS
 
 class Ball(GameObject):
 
@@ -86,6 +86,10 @@ class Ball(GameObject):
 
     def update(self):
         # TODO 3.1 - Calculate new position. Cast the velocity to int!
+        if self.velocity[0] > 300 or \
+            self.velocity[1] > 300:
+            self.reset()
+
         if self.velocity[0] != 0 and self.velocity[1] != 0:
             if self.speed[2] == 0:
                 self.clock = SLOW_TIME
@@ -100,6 +104,7 @@ class Ball(GameObject):
             if self.clock == 0:
                 self.velocity[0] = 0
                 self.velocity[1] = 0
+                return
 
             if self.velocity[0] > 0:
                 self.velocity[0] -= self.speed[0]
@@ -114,28 +119,58 @@ class Ball(GameObject):
         # TODO 3.2 - When ball hits up and down walls, bounce the ball off the wall.
         if self.position[1] - self.dimensions[1] < 0:
             self.velocity[1] *= -1
+            return
 
         if self.position[1] + self.dimensions[1] > HEIGHT:
             self.velocity[1] *= -1
+            return
 
         if self.position[0] - self.dimensions[0] < 0:
             self.velocity[0] *= -1
+            return
 
         if self.position[0] + self.dimensions[0] > WIDTH:
             self.velocity[0] *= -1
+            return
 
-        if self.position[0] >= HOLE_POSITION[0] and self.position[0] <= HOLE_POSITION[0] + HOLE_RADIUS * 2 - BALL_RADIUS * 2 \
-            and self.position[1] >= HOLE_POSITION[1] and self.position[1] <= HOLE_POSITION[1] + HOLE_RADIUS * 2 - BALL_RADIUS * 2:
-                self.reset()
-                self.game.leftPlayerScore = 0
+        
+            # self.reset()
+            # HIGH_SCORE = self.game.leftPlayerScore
+            # print(HIGH_SCORE)
+            # self.game.leftPlayerScore = 0
+            # print(self.game.leftPlayerScore)
+                
+
+        for target in self.game.gameObjects:
+            if self.game.ball != target and self.game.hole != target:
+                if self.velocity[0] > 0 and \
+                    abs(target.position[0] - self.position[0]) < abs(self.dimensions[0]) and \
+                    abs(self.position[1] - target.position[1]) < abs(self.dimensions[1] + target.dimensions[1]):
+                    self.velocity[0] *= -1
+                    continue
+                
+                if self.velocity[0] < 0 and \
+                    abs(target.position[0] - self.position[0]) < abs(target.dimensions[0]) and \
+                    self.position[0] > target.position[0] and \
+                    abs(self.position[1] - target.position[1]) < abs(self.dimensions[1] + target.dimensions[1]):
+                    self.velocity[0] *= -1
+                    continue
+
+                if self.velocity[1] > 0 and \
+                    abs(target.position[1] - self.position[1]) < abs(self.dimensions[1]) and \
+                    abs(self.position[0] - target.position[0]) < abs(self.dimensions[0] + target.dimensions[0]):
+                    self.velocity[1] *= -1
+                    continue
 
     def reset(self):
         self.game.ball = Ball(self.game, [200, 600], [BALL_RADIUS, BALL_RADIUS])
         self.game.gameObjects.remove(self)
         self.game.gameObjects.append(self.game.ball)
 
-    def onCollision(self, other):
-        pass
+    def onCollision(self, other, side):
+        if side == 1:
+            self.velocity[0] *= -1
+            self.velocity[1] *= 1
         
 class Hole(GameObject):
 
@@ -187,6 +222,7 @@ class Game:
         # Don't touch this
         self.gameObjects = []
         self.leftPlayerScore = 0
+        self.highScore = 0
         self.velocity_x = 0
         self.velocity_y = 0
         self.speed_level = 0
@@ -205,6 +241,35 @@ class Game:
         self.gameObjects.append(self.wall3)
         self.gameObjects.append(self.wall4)
 
+    def lobby(self):
+        while True:
+            pygame.init()
+            bg_img = pygame.image.load('golf.jpg')
+            bg_img = pygame.transform.scale(bg_img,(WIDTH,HEIGHT))
+            self.window.blit(bg_img, (0, 0))
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    return 0
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    mouse_presses = pygame.mouse.get_pressed()
+                    if mouse_presses[0]:
+                        (pos_x, pos_y) = pygame.mouse.get_pos()
+                        if pos_x > 180 and pos_x < 330 and \
+                            pos_y > 150 and pos_y < 200:
+                            return 1
+            myfont1 = pygame.font.SysFont("Comic Sans MS", 75)
+            label1 = myfont1.render("Pixel Golf" , 1, (0,0,0))
+            self.window.blit(label1, (120,75))
+
+            pygame.draw.rect(self.window, RED, (180, 150, 150, 50))
+
+            label1 = myfont1.render("Start" , 1, (0,0,0))
+            self.window.blit(label1, (190,150))
+
+            pygame.display.update()
+            frame_rate.tick(60)
+
     def run(self):
         while True:
             closed = self.input()
@@ -215,13 +280,13 @@ class Game:
 
     def collisionDetection(self):
         for target in self.gameObjects:
-            if self.ball != target and self.hole != target:
-                if self.ball.collidesWith(target):
-                    self.ball.onCollision(target)
             if self.hole == target:
                 if self.ball.collidesWith(target):
                     for obj in self.gameObjects:
                         obj.reset()
+                    if self.highScore == 0 or (self.highScore != 0 and self.highScore > self.leftPlayerScore):
+                        self.highScore = self.leftPlayerScore
+                    self.leftPlayerScore = 0
                     break
 
     def update(self):
@@ -233,6 +298,10 @@ class Game:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return 0
+            if event.type == KEYDOWN and event.key == K_q:
+                self.ball.reset()
+                self.leftPlayerScore = 0
+
             if event.type == pygame.MOUSEBUTTONDOWN:
                 mouse_presses = pygame.mouse.get_pressed()
                 if mouse_presses[0]:
@@ -269,8 +338,12 @@ class Game:
             gameObject.draw()
 
         myfont1 = pygame.font.SysFont("Comic Sans MS", 30)
-        label1 = myfont1.render("High Score : " + str(self.leftPlayerScore), 1, (0,0,0))
+        label1 = myfont1.render("Score : " + str(self.leftPlayerScore), 1, (0,0,0))
         self.window.blit(label1, (20,20))
+
+        if self.highScore > 0:
+            label1 = myfont1.render("High Score : " + str(self.highScore), 1, (0,0,0))
+            self.window.blit(label1, (20,40))
         
         if self.speed_level > 0:
             myfont2 = pygame.font.SysFont("Comic Sans MS", 20)
@@ -298,5 +371,9 @@ class Game:
         frame_rate.tick(60)
 
 game = Game()
+closedLobby = game.lobby()
+if closedLobby == 0:
+    sys.exit()
+
 closed = game.run()
 sys.exit()
