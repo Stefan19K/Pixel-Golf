@@ -25,7 +25,7 @@ BALL_POSITION = [200, 600]
 SLOW_TIME = 100
 HOLE_RADIUS = BALL_RADIUS + 5
 HOLE_POSITION = [200, 50]
-LEVELS = 2
+LEVELS = 3
 
 def total_distance(x, y, ball_position):
     return math.sqrt(math.pow(x - ball_position[0], 2) + math.pow(y - ball_position[1], 2))
@@ -131,15 +131,7 @@ class Ball(GameObject):
 
         if self.position[0] + self.dimensions[0] > WIDTH:
             self.velocity[0] *= -1
-            return
-
-        
-            # self.reset()
-            # HIGH_SCORE = self.game.leftPlayerScore
-            # print(HIGH_SCORE)
-            # self.game.leftPlayerScore = 0
-            # print(self.game.leftPlayerScore)
-                
+            return                
 
         for target in self.game.gameObjects:
             if self.game.ball != target and self.game.hole != target:
@@ -227,19 +219,11 @@ class Game:
         self.velocity_y = 0
         self.speed_level = 0
 
-        self.ball = Ball(self, [200, 600], [BALL_RADIUS, BALL_RADIUS])
-        self.hole = Hole(self, [200, 50], [BALL_RADIUS + 5, BALL_RADIUS + 5])
-        self.wall1 = Wall(self, [0, 0], [100, 250])
-        self.wall2 = Wall(self, [0, 450], [100, 250])
-        self.wall3 = Wall(self, [300, 0], [200, 700])
-        self.wall4 = Wall(self, [175, 300], [125, 100])
+        self.ball = 0
+        self.hole = 0
 
-        self.gameObjects.append(self.ball)
-        self.gameObjects.append(self.hole)
-        self.gameObjects.append(self.wall1)
-        self.gameObjects.append(self.wall2)
-        self.gameObjects.append(self.wall3)
-        self.gameObjects.append(self.wall4)
+        # self.gameObjects.append(self.ball)
+        # self.gameObjects.append(self.hole)
 
     def lobby(self):
         while True:
@@ -270,13 +254,32 @@ class Game:
             pygame.display.update()
             frame_rate.tick(60)
 
-    def run(self):
+    def run(self, lvl):
+        f = open("level" + str(lvl) + ".txt", "r")
+
+        self.ball = Ball(self, [200, 600], [BALL_RADIUS, BALL_RADIUS])
+        self.hole = Hole(self, [200, 50], [BALL_RADIUS + 5, BALL_RADIUS + 5])
+        self.gameObjects.append(self.ball)
+        self.gameObjects.append(self.hole)
+
+        line = f.readline()
+        while line:
+            params = line.split()
+            if params[0] == "wall":
+                wal = Wall(self, [int(params[1]), int(params[2])], [int(params[3]), int(params[4])])
+                
+                self.gameObjects.append(wal)
+            line = f.readline()
+        f.close()
+
         while True:
             closed = self.input()
             if closed == 0:
                 return 0
-            self.update()
+            if self.update():
+                return 1
             self.draw()
+        return 0
 
     def collisionDetection(self):
         for target in self.gameObjects:
@@ -287,12 +290,15 @@ class Game:
                     if self.highScore == 0 or (self.highScore != 0 and self.highScore > self.leftPlayerScore):
                         self.highScore = self.leftPlayerScore
                     self.leftPlayerScore = 0
-                    break
+                    return 1
+        return 0
 
     def update(self):
-        self.collisionDetection()
+        if self.collisionDetection():
+            return 1
         for gameObject in self.gameObjects:
             gameObject.update()
+        return 0
 
     def input(self):
         for event in pygame.event.get():
@@ -328,6 +334,9 @@ class Game:
                     self.velocity_x = 0
                     self.velocity_y = 0
                     self.speed_level = 0
+
+    def reset(self):
+        self.gameObjects = []
 
     def draw(self):
         # TODO 2.1 - Fill window with BLACK.
@@ -374,6 +383,9 @@ game = Game()
 closedLobby = game.lobby()
 if closedLobby == 0:
     sys.exit()
-
-closed = game.run()
+for i in range(LEVELS):
+    closed = game.run(i)
+    if closed == 0:
+        break
+    game.reset()
 sys.exit()
