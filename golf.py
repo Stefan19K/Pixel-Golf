@@ -239,17 +239,84 @@ class Game:
                     mouse_presses = pygame.mouse.get_pressed()
                     if mouse_presses[0]:
                         (pos_x, pos_y) = pygame.mouse.get_pos()
-                        if pos_x > 180 and pos_x < 330 and \
+                        if pos_x > 170 and pos_x < 310 and \
                             pos_y > 150 and pos_y < 200:
                             return 1
+
+                        if pos_x > 160 and pos_x < 335 and \
+                            pos_y > 225 and pos_y < 275:
+                            return 2
             myfont1 = pygame.font.SysFont("Comic Sans MS", 75)
             label1 = myfont1.render("Pixel Golf" , 1, (0,0,0))
             self.window.blit(label1, (120,75))
 
-            pygame.draw.rect(self.window, RED, (180, 150, 150, 50))
+            pygame.draw.rect(self.window, RED, (170, 150, 140, 50))
 
             label1 = myfont1.render("Start" , 1, (0,0,0))
-            self.window.blit(label1, (190,150))
+            self.window.blit(label1, (180,150))
+
+
+            pygame.draw.rect(self.window, RED, (160, 225, 175, 50))
+
+            label1 = myfont1.render("Levels" , 1, (0,0,0))
+            self.window.blit(label1, (170,225))
+
+            pygame.display.update()
+            frame_rate.tick(60)
+
+    def level_lobby(self):
+        while True:
+            bg_img = pygame.image.load('golf.jpg')
+            bg_img = pygame.transform.scale(bg_img,(WIDTH,HEIGHT))
+            self.window.blit(bg_img, (0, 0))
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    return -1
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    mouse_presses = pygame.mouse.get_pressed()
+                    if mouse_presses[0]:
+                        (pos_x, pos_y) = pygame.mouse.get_pos()
+                        if pos_x > 100 and pos_x < 150 and \
+                            pos_y > 150 and pos_y < 200:
+                            return 0
+
+                        if pos_x > 200 and pos_x < 250 and \
+                            pos_y > 150 and pos_y < 200:
+                            return 1
+
+                        if pos_x > 300 and pos_x < 350 and \
+                            pos_y > 150 and pos_y < 200:
+                            return 2
+
+                        if pos_x > 0 and pos_x < 125 and \
+                            pos_y > 650 and pos_y < HEIGHT:
+                            return -2                        
+
+            myfont1 = pygame.font.SysFont("Comic Sans MS", 75)
+            label1 = myfont1.render("Levels" , 1, (0,0,0))
+            self.window.blit(label1, (175,75))
+
+            pygame.draw.rect(self.window, RED, (100, 150, 50, 50))
+
+            label1 = myfont1.render("0" , 1, (0,0,0))
+            self.window.blit(label1, (110,150))
+
+
+            pygame.draw.rect(self.window, RED, (200, 150, 50, 50))
+
+            label1 = myfont1.render("1" , 1, (0,0,0))
+            self.window.blit(label1, (210,150))
+
+            pygame.draw.rect(self.window, RED, (300, 150, 50, 50))
+
+            label1 = myfont1.render("2" , 1, (0,0,0))
+            self.window.blit(label1, (310, 150))
+
+            pygame.draw.rect(self.window, RED, (0, 650, 125, 50))
+
+            label1 = myfont1.render("Back" , 1, (0,0,0))
+            self.window.blit(label1, (0, 650))
 
             pygame.display.update()
             frame_rate.tick(60)
@@ -380,12 +447,33 @@ class Game:
         frame_rate.tick(60)
 
 game = Game()
-closedLobby = game.lobby()
-if closedLobby == 0:
-    sys.exit()
-for i in range(LEVELS):
-    closed = game.run(i)
-    if closed == 0:
+closedLobby = -1
+start = 0
+
+while closedLobby < 0:
+    closedLobby = game.lobby()
+    if closedLobby == 0:
+        sys.exit()
         break
-    game.reset()
-sys.exit()
+
+    if closedLobby == 1:
+        break
+
+    if closedLobby == 2:
+        closedLobby = game.level_lobby()
+        if closedLobby == -1:
+            sys.exit()
+            break
+
+        if closedLobby == -2:
+            continue
+
+        start = closedLobby
+
+if closedLobby != -1 and closedLobby != 0:
+    for i in range(start, LEVELS):
+        closed = game.run(i)
+        if closed == 0:
+            break
+        game.reset()
+    sys.exit()
