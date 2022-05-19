@@ -67,7 +67,6 @@ class GameObject:
         pass
 
     def collidesWith(self, other):
-        # TODO 5 - Return true if self collides with other, false otherwise
         return self.position[0] >= HOLE_POSITION[0] and self.position[0] <= HOLE_POSITION[0] + HOLE_RADIUS * 2 - BALL_RADIUS \
             and self.position[1] >= HOLE_POSITION[1] and self.position[1] <= HOLE_POSITION[1] + HOLE_RADIUS * 2 - BALL_RADIUS
 
@@ -80,12 +79,10 @@ class Ball(GameObject):
         self.clock = 0
 
     def draw(self):
-        # TODO 2.2 - Draw ball as a red circle.
         pygame.draw.circle(self.game.window, RED, self.position, BALL_RADIUS, 0)
         pass
 
     def update(self):
-        # TODO 3.1 - Calculate new position. Cast the velocity to int!
         if self.velocity[0] > 300 or \
             self.velocity[1] > 300:
             self.reset()
@@ -116,7 +113,6 @@ class Ball(GameObject):
             elif self.velocity[1] < 0:
                 self.velocity[1] += self.speed[1] 
         
-        # TODO 3.2 - When ball hits up and down walls, bounce the ball off the wall.
         if self.position[1] - self.dimensions[1] < 0:
             self.velocity[1] *= -1
             return
@@ -136,21 +132,34 @@ class Ball(GameObject):
         for target in self.game.gameObjects:
             if self.game.ball != target and self.game.hole != target:
                 if self.velocity[0] > 0 and \
-                    abs(target.position[0] - self.position[0]) < abs(self.dimensions[0]) and \
-                    abs(self.position[1] - target.position[1]) < abs(self.dimensions[1] + target.dimensions[1]):
+                    self.position[0] + self.dimensions[0] > target.position[0] and \
+                    self.position[0] < target.position[0] and \
+                    self.position[1] + self.dimensions[1] > target.position[1] and \
+                    self.position[1] < target.position[1] + target.dimensions[1]:
                     self.velocity[0] *= -1
                     continue
-                
+
                 if self.velocity[0] < 0 and \
-                    abs(target.position[0] - self.position[0]) < abs(target.dimensions[0]) and \
-                    self.position[0] > target.position[0] and \
-                    abs(self.position[1] - target.position[1]) < abs(self.dimensions[1] + target.dimensions[1]):
+                    self.position[0] < target.position[0] + target.dimensions[0] and \
+                    self.position[0] + self.dimensions[0] > target.position[0] + target.dimensions[0] and \
+                    self.position[1] + self.dimensions[1] > target.position[1] and \
+                    self.position[1] < target.position[1] + target.dimensions[1]:
                     self.velocity[0] *= -1
                     continue
 
                 if self.velocity[1] > 0 and \
-                    abs(target.position[1] - self.position[1]) < abs(self.dimensions[1]) and \
-                    abs(self.position[0] - target.position[0]) < abs(self.dimensions[0] + target.dimensions[0]):
+                    self.position[1] + self.dimensions[1] > target.position[1] and \
+                    self.position[1] < target.position[1] and \
+                    self.position[0] + self.dimensions[0] > target.position[0] and \
+                    self.position[0] < target.position[0] + target.dimensions[0]:
+                    self.velocity[1] *= -1
+                    continue
+
+                if self.velocity[1] < 0 and \
+                    self.position[1] < target.position[1] + target.dimensions[1] and \
+                    self.position[1] + self.dimensions[1] > target.position[1] + target.dimensions[1] and \
+                    self.position[0] + self.dimensions[0] > target.position[0] and \
+                    self.position[0] < target.position[0] + target.dimensions[0]:
                     self.velocity[1] *= -1
                     continue
 
@@ -171,7 +180,6 @@ class Hole(GameObject):
         super().__init__(game, position, velocity, dimensions)
 
     def draw(self):
-        # TODO 2.2 - Draw ball as a red circle.
         pygame.draw.circle(self.game.window, WHITE, self.position, BALL_RADIUS + 5, 0)
         pass
 
@@ -191,7 +199,6 @@ class Wall(GameObject):
         super().__init__(game, position, velocity, dimensions)
 
     def draw(self):
-        # TODO 2.2 - Draw ball as a red circle.
         pygame.draw.rect(self.game.window, BROWN, (self.position[0], self.position[1], self.dimensions[0], self.dimensions[1]))
         pass
 
@@ -211,19 +218,16 @@ class Game:
         self.window = pygame.display.set_mode((WIDTH, HEIGHT), 0, 32)
         pygame.display.set_caption('Pixel Golf')
 
-        # Don't touch this
         self.gameObjects = []
         self.leftPlayerScore = 0
         self.highScore = 0
         self.velocity_x = 0
         self.velocity_y = 0
         self.speed_level = 0
+        self.signs = [0, 0, 0]
 
         self.ball = 0
         self.hole = 0
-
-        # self.gameObjects.append(self.ball)
-        # self.gameObjects.append(self.hole)
 
     def lobby(self):
         while True:
@@ -389,8 +393,12 @@ class Game:
                     if self.speed_level == 0:
                         self.speed_level += 1
                     
-                    self.velocity_x = tang_list[0] * tang_list[2] * self.speed_level
-                    self.velocity_y = tang_list[1] * tang_list[3] * self.speed_level
+                    self.velocity_x = tang_list[0] * tang_list[2] * (self.speed_level / 2)
+                    self.velocity_y = tang_list[1] * tang_list[3] * (self.speed_level / 2)
+
+                    self.signs[0] = tang_list[0]
+                    self.signs[1] = tang_list[1]
+                    self.signs[2] = tang_list[3]
 
                 if mouse_presses[2]:
                     if self.speed_level > 0:
@@ -401,15 +409,14 @@ class Game:
                     self.velocity_x = 0
                     self.velocity_y = 0
                     self.speed_level = 0
+                    self.signs = [0, 0, 0]
 
     def reset(self):
         self.gameObjects = []
 
     def draw(self):
-        # TODO 2.1 - Fill window with BLACK.
         self.window.fill(DARKG)
 
-        # TODO 2.1 - Draw all objects from self.gameObjects.
         for gameObject in self.gameObjects:
             gameObject.draw()
 
@@ -440,10 +447,12 @@ class Game:
                 pygame.draw.rect(self.window, RED, 
                     (460, 670 - 10 * i, 20, 10))
 
-        # TODO 2.1 - Update display.
+        if self.signs[0] != 0:
+            pygame.draw.line(self.window, WHITE, (self.ball.position[0], self.ball.position[1]), (self.ball.position[0]+ 20 * self.signs[0], self.ball.position[1] + 20 * self.signs[1]))
+            pygame.display.flip()
+
         pygame.display.update()
 
-        # TODO 2.1 - Set frame rate to 60 FPS.
         frame_rate.tick(60)
 
 game = Game()
